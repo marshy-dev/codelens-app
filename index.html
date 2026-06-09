@@ -491,7 +491,7 @@
   </div>
   <div class="nav-right">
     <span class="badge">AI-Powered</span>
-    <button class="btn-primary">Get Pro</button>
+    <button class="btn-primary" onclick="startCheckout('pro', this)">Get Pro</button>
   </div>
 </nav>
 
@@ -508,7 +508,7 @@
 </div>
 
 <!-- TOOL -->
-<div class="tool-wrapper">
+<div class="tool-wrapper" id="tool-section">
 
   <div class="examples-row">
     <span style="font-size:12px;color:var(--muted);align-self:center;margin-right:4px;">Try an example:</span>
@@ -524,6 +524,7 @@
       <span id="btnText">Review My Code</span>
     </button>
     <button class="btn-clear" onclick="clearAll()">Clear</button>
+    <span id="reviewCounter" style="font-size:12px;font-family:var(--mono)"></span>
   </div>
 
   <div class="tool-grid">
@@ -620,7 +621,7 @@ function getUser(id) {
         <li class="no">Refactored code output</li>
         <li class="no">API access</li>
       </ul>
-      <button class="btn-plan">Start Free</button>
+      <button class="btn-plan" onclick="startFree()">Start Free</button>
     </div>
 
     <div class="price-card featured">
@@ -766,11 +767,60 @@ function setLoading(on) {
   }
 }
 
+// ── Free Tier Rate Limiting ──
+const FREE_LIMIT = 5;
+
+function getTodayKey() {
+  return 'cl_reviews_' + new Date().toISOString().slice(0, 10);
+}
+
+function getReviewCount() {
+  try {
+    return parseInt(localStorage.getItem(getTodayKey()) || '0', 10);
+  } catch(e) { return 0; }
+}
+
+function incrementReviewCount() {
+  try {
+    const key = getTodayKey();
+    const count = getReviewCount() + 1;
+    localStorage.setItem(key, count);
+    updateReviewCounter();
+    return count;
+  } catch(e) { return 1; }
+}
+
+function updateReviewCounter() {
+  const count = getReviewCount();
+  const remaining = Math.max(0, FREE_LIMIT - count);
+  const el = document.getElementById('reviewCounter');
+  if (el) {
+    el.textContent = `${remaining} free review${remaining !== 1 ? 's' : ''} remaining today`;
+    el.style.color = remaining <= 1 ? 'var(--warn)' : 'var(--muted)';
+  }
+}
+
+function startFree() {
+  document.getElementById('tool-section').scrollIntoView({ behavior: 'smooth' });
+}
+
 async function reviewCode() {
   const code = document.getElementById('codeInput').value.trim();
   const lang = document.getElementById('langSelect').value;
   if (!code) {
     alert('Please paste some code first, or try one of the examples.');
+    return;
+  }
+
+  // Check free limit
+  const count = getReviewCount();
+  if (count >= FREE_LIMIT) {
+    document.getElementById('reviewOutput').innerHTML = `
+      <div class="placeholder-state">
+        <div class="icon">🔒</div>
+        <p style="color:var(--warn);margin-bottom:12px">You've used all 5 free reviews today.</p>
+        <button class="btn-primary" onclick="startCheckout('pro', this)" style="margin-top:8px">Upgrade to Pro — £9/mo</button>
+      </div>`;
     return;
   }
 
@@ -787,6 +837,7 @@ async function reviewCode() {
     const review = await res.json();
     if (!res.ok) throw new Error(review.error || 'Review failed');
 
+    incrementReviewCount();
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     renderReview(review, elapsed, lang);
   } catch (err) {
@@ -888,6 +939,9 @@ if (params.get('cancelled') === 'true') {
   showToast('Checkout cancelled — come back whenever you\'re ready.');
   window.history.replaceState({}, '', '/');
 }
+
+// Initialise counter on load
+updateReviewCounter();
 </script>
 </body>
 </html>
