@@ -45,13 +45,24 @@ Include 3-6 issues total. For good code, use severity "ok" for things done well.
     });
 
     const data = await response.json();
+    console.log('Anthropic response status:', response.status);
+    console.log('Anthropic response body:', JSON.stringify(data));
+
+    if (!response.ok) {
+      return res.status(500).json({ error: data.error?.message || 'Anthropic API error' });
+    }
+
+    if (!data.content) {
+      return res.status(500).json({ error: 'No content returned from Anthropic' });
+    }
+
     const rawText = data.content.map(b => b.text || '').join('');
     const clean = rawText.replace(/```json|```/g, '').trim();
     const review = JSON.parse(clean);
 
     res.status(200).json(review);
   } catch (err) {
-    console.error(err);
+    console.error('Handler error:', err);
     res.status(500).json({ error: 'Review failed. Please try again.' });
   }
 }
