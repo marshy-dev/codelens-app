@@ -777,43 +777,15 @@ async function reviewCode() {
   setLoading(true);
   const startTime = Date.now();
 
-  const systemPrompt = `You are CodeLens, an expert code reviewer. Analyze the given code and return ONLY a JSON object (no markdown, no backticks, no extra text) with this exact structure:
-
-{
-  "score": <number 0-100>,
-  "scoreLabel": "<one of: Excellent / Good / Needs Work / Critical Issues>",
-  "summary": "<2 sentence summary of overall code quality>",
-  "issues": [
-    {
-      "severity": "<critical|warning|info|ok>",
-      "category": "<Security|Performance|Structure|Error Handling|Readability|Testability|Best Practice|Logic>",
-      "title": "<short issue title>",
-      "description": "<clear explanation of the problem>",
-      "fix": "<concrete code fix or improvement, 1-4 lines>"
-    }
-  ]
-}
-
-Include 3–6 issues total. For good code, use severity "ok" for things done well. Be specific and actionable. Fix examples should be real code snippets.`;
-
-  const userPrompt = `Review this ${lang} code:\n\n${code}`;
-
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("/api/review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }]
-      })
+      body: JSON.stringify({ code, language: lang })
     });
 
-    const data = await res.json();
-    const rawText = data.content.map(b => b.text || '').join('');
-    const clean = rawText.replace(/```json|```/g, '').trim();
-    const review = JSON.parse(clean);
+    const review = await res.json();
+    if (!res.ok) throw new Error(review.error || 'Review failed');
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     renderReview(review, elapsed, lang);
