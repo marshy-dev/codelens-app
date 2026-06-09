@@ -636,7 +636,7 @@ function getUser(id) {
         <li>Refactored code output</li>
         <li class="no">API access</li>
       </ul>
-      <button class="btn-plan featured">Start 7-day Trial</button>
+      <button class="btn-plan featured" onclick="startCheckout('pro', this)">Start 7-day Trial</button>
     </div>
 
     <div class="price-card">
@@ -651,7 +651,7 @@ function getUser(id) {
         <li>Priority support</li>
         <li>Custom rules & style guide</li>
       </ul>
-      <button class="btn-plan">Contact Us</button>
+      <button class="btn-plan" onclick="startCheckout('team', this)">Get Team Plan</button>
     </div>
   </div>
 </div>
@@ -847,11 +847,9 @@ function escHtml(str) {
 }
 
 // ── Stripe Checkout ──
-async function startCheckout(plan) {
-  const btn = document.getElementById(plan === 'pro' ? 'btnPro' : 'btnTeam');
-  const original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Loading...';
+async function startCheckout(plan, btnEl) {
+  const original = btnEl ? btnEl.textContent : '';
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Loading...'; }
 
   try {
     const res = await fetch('/api/checkout', {
@@ -864,13 +862,11 @@ async function startCheckout(plan) {
       window.location.href = data.url;
     } else {
       showToast('Something went wrong. Please try again.');
-      btn.disabled = false;
-      btn.textContent = original;
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = original; }
     }
   } catch (err) {
     showToast('Something went wrong. Please try again.');
-    btn.disabled = false;
-    btn.textContent = original;
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = original; }
   }
 }
 
