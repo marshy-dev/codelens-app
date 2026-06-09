@@ -45,8 +45,8 @@ Include 3-6 issues total. For good code, use severity "ok" for things done well.
     });
 
     const data = await response.json();
-    console.log('Anthropic response status:', response.status);
-    console.log('Anthropic response body:', JSON.stringify(data));
+    console.log('Anthropic status:', response.status);
+    console.log('Anthropic body:', JSON.stringify(data));
 
     if (!response.ok) {
       return res.status(500).json({ error: data.error?.message || 'Anthropic API error' });
