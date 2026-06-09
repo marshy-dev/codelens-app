@@ -845,6 +845,53 @@ function escHtml(str) {
     .replace(/</g,'&lt;')
     .replace(/>/g,'&gt;');
 }
+
+// ── Stripe Checkout ──
+async function startCheckout(plan) {
+  const btn = document.getElementById(plan === 'pro' ? 'btnPro' : 'btnTeam');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Loading...';
+
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan })
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      showToast('Something went wrong. Please try again.');
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  } catch (err) {
+    showToast('Something went wrong. Please try again.');
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+// ── Toast ──
+function showToast(msg, duration = 4000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', duration);
+}
+
+// ── Handle Stripe redirect back ──
+const params = new URLSearchParams(window.location.search);
+if (params.get('success') === 'true') {
+  showToast('🎉 Welcome to CodeLens Pro! Your subscription is active.');
+  window.history.replaceState({}, '', '/');
+}
+if (params.get('cancelled') === 'true') {
+  showToast('Checkout cancelled — come back whenever you\'re ready.');
+  window.history.replaceState({}, '', '/');
+}
 </script>
 </body>
 </html>
